@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ru" data-lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Просто ВПН</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- QR-код библиотека (работает офлайн после первой загрузки) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0c10;
+      --surface: #111318;
+      --surface2: #181c24;
+      --border: rgba(255,255,255,0.07);
+      --accent: #4f9cff;
+      --accent2: #7b5cfa;
+      --green: #2ecc71;
+      --text: #e8eaf0;
+      --muted: #6b7280;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 10%, rgba(79,156,255,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(123,92,250,0.07) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 16px 60px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 0 14px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .logo-name {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 14px; font-weight: 600; letter-spacing: 0.03em;
+    }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+
+    /* LANG */
+    .lang-switcher { position: relative; }
+    .lang-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 11px;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      display: flex; align-items: center; gap: 4px;
+      user-select: none;
+      transition: border-color 0.2s;
+    }
+    .lang-btn:hover { border-color: var(--accent); }
+    .lang-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      min-width: 120px;
+      z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .lang-dropdown.open { display: block; }
+    .lang-option {
+      padding: 10px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      transition: background 0.15s;
+      color: var(--text);
+    }
+    .lang-option:hover { background: var(--surface2); }
+    .lang-option.active { color: var(--accent); }
+    .theme-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.2s;
+    }
+    .theme-btn:hover { border-color: var(--accent); }
+
+    /* HERO */
+    .hero {
+      text-align: center;
+      margin-bottom: 28px;
+      animation: fadeUp 0.5s ease both;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(46,204,113,0.12);
+      border: 1px solid rgba(46,204,113,0.25);
+      color: var(--green);
+      font-size: 11px; font-weight: 500;
+      padding: 4px 10px; border-radius: 20px;
+      margin-bottom: 12px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .hero-badge::before { content: '●'; font-size: 7px; }
+    .hero h1 {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 26px; font-weight: 700; line-height: 1.2;
+      background: linear-gradient(135deg, #fff 30%, var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 6px;
+    }
+    .hero p { font-size: 13px; color: var(--muted); }
+
+    /* CARD */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 14px;
+      animation: fadeUp 0.5s 0.1s ease both;
+    }
+    .card-title {
+      font-size: 12px; font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 16px;
+    }
+
+    /* STEPS */
+    .steps { display: flex; flex-direction: column; }
+    .step {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .step:last-child { border-bottom: none; padding-bottom: 0; }
+    .step:first-child { padding-top: 0; }
+    .step-num {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Unbounded', sans-serif;
+      font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .step-body { flex: 1; }
+    .step-title { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+    .step-desc  { font-size: 12px; color: var(--muted); }
+    .step-icon  { font-size: 18px; flex-shrink: 0; }
+
+    /* PLATFORMS */
+    .platforms { display: flex; gap: 6px; flex-wrap: wrap; margin: 16px 0 4px; }
+    .platform-tab {
+      display: flex; align-items: center; gap: 5px;
+      padding: 7px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 12px; color: var(--text); cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .platform-tab:hover { border-color: var(--accent); background: rgba(79,156,255,0.08); }
+    .platform-tab.active { border-color: var(--accent); background: rgba(79,156,255,0.12); color: var(--accent); }
+
+    /* BUTTONS */
+    .btn-primary {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 15px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; border-radius: var(--radius);
+      color: #fff;
+      font-family: 'Unbounded', sans-serif;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      transition: opacity 0.2s, transform 0.15s;
+      margin-top: 14px;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary:active { transform: scale(0.98); }
+
+    .btn-secondary {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 12px;
+      background: transparent;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--text);
+      font-size: 13px; font-weight: 500;
+      cursor: pointer; text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+      margin-top: 10px;
+    }
+    .btn-secondary:hover { border-color: var(--accent); background: rgba(79,156,255,0.06); }
+
+    /* ─── QR БЛОК ─── */
+    .qr-card {
+      animation: fadeUp 0.5s 0.2s ease both;
+    }
+
+    /* Состояние: нет ключа в URL */
+    .qr-empty {
+      text-align: center;
+      padding: 10px 0 6px;
+    }
+    .qr-empty-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      opacity: 0.4;
+    }
+    .qr-empty-title {
+      font-size: 14px; font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .qr-empty-desc {
+      font-size: 12px; color: var(--muted); line-height: 1.6;
+    }
+    .qr-empty-hint {
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: rgba(79,156,255,0.07);
+      border: 1px solid rgba(79,156,255,0.18);
+      border-radius: 10px;
+      font-size: 11px;
+      color: var(--accent);
+      line-height: 1.6;
+      text-align: left;
+    }
+
+    /* Состояние: QR отображается */
+    .qr-content { display: none; }
+    .qr-content.visible { display: block; }
+
+    .qr-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .qr-box {
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+      position: relative;
+    }
+
+    /* Уголки-рамка вокруг QR */
+    .qr-box::before, .qr-box::after {
+      content: '';
+      position: absolute;
+      width: 20px; height: 20px;
+      border-color: var(--accent);
+      border-style: solid;
+    }
+    .qr-box::before {
+      top: -2px; left: -2px;
+      border-width: 3px 0 0 3px;
+      border-radius: 4px 0 0 0;
+    }
+    .qr-box::after {
+      bottom: -2px; right: -2px;
+      border-width: 0 3px 3px 0;
+      border-radius: 0 0 4px 0;
+    }
+
+    #qrcode canvas, #qrcode img {
+      border-radius: 4px;
+      display: block;
+    }
+
+    .qr-info {
+      width: 100%;
+    }
+    .qr-info-title {
+      font-size: 14px; font-weight: 600;
+      margin-bottom: 4px;
+      text-align: center;
+    }
+    .qr-info-sub {
+      font-size: 12px; color: var(--muted);
+      text-align: center;
+      margin-bottom: 14px;
+    }
+
+    .qr-key-preview {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: monospace;
+      word-break: break-all;
+      line-height: 1.5;
+      max-height: 56px;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      user-select: all;
+      transition: border-color 0.2s;
+    }
+    .qr-key-preview:hover { border-color: var(--accent); color: var(--text); }
+    .qr-key-preview::after {
+      content: 'нажмите чтобы скопировать';
+      position: absolute;
+      bottom: 6px; right: 8px;
+      font-size: 9px;
+      color: var(--accent);
+      background: var(--surface2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .qr-key-preview:hover::after { opacity: 1; }
+
+    .copy-toast {
+      display: none;
+      text-align: center;
+      font-size: 12px;
+      color: var(--green);
+      margin-top: 6px;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    /* FOOTER */
+    footer {
+      text-align: center;
+      padding-top: 24px;
+      font-size: 11px; color: var(--muted);
+      border-top: 1px solid var(--border);
+      margin-top: 10px;
+      animation: fadeUp 0.5s 0.25s ease both;
+    }
+    footer span { opacity: 0.5; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🛡️</div>
+      <div class="logo-name" data-i18n="brand">Просто ВПН</div>
+    </div>
+    <div class="header-right">
+      <div class="lang-switcher" id="langSwitcher">
+        <button class="lang-btn" id="langBtn" onclick="toggleLangDropdown()">
+          <span id="langLabel">RU</span> ▾
+        </button>
+        <div class="lang-dropdown" id="langDropdown">
+          <div class="lang-option active" id="opt-ru" onclick="setLang('ru')">🇷🇺 Русский</div>
+          <div class="lang-option" id="opt-en" onclick="setLang('en')">🇬🇧 English</div>
+        </div>
+      </div>
+      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div class="hero-badge" data-i18n="badge">Безопасное соединение</div>
+    <h1 data-i18n="brand">Просто ВПН</h1>
+    <p data-i18n="tagline">· зашифрованный канал ·</p>
+  </div>
+
+  <!-- STEPS + DOWNLOAD -->
+  <div class="card">
+    <div class="card-title" data-i18n="how_title">Как подключиться</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title" data-i18n="step1_title">Установите Happ</div>
+          <div class="step-desc" data-i18n="step1_desc">Скачайте приложение на своё устройство</div>
+        </div>
+        <div class="step-icon">⬇️</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title" data-i18n="step2_title">Вернитесь сюда</div>
+          <div class="step-desc" data-i18n="step2_desc">Откройте эту страницу в браузере</div>
+        </div>
+        <div class="step-icon">↩️</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title" data-i18n="step3_title">Нажмите Подключить</div>
+          <div class="step-desc" data-i18n="step3_desc">Соединение установится автоматически</div>
+        </div>
+        <div class="step-icon">▶️</div>
+      </div>
+    </div>
+    <div class="platforms">
+      <div class="platform-tab active" onclick="selectPlatform(this,'ios')">🍎 iOS</div>
+      <div class="platform-tab" onclick="selectPlatform(this,'android')">🤖 Android</div>
+      <div class="platform-tab" onclick="selectPlatform(this,'win')">🪟 Windows</div>
+      <div class="platform-tab" onclick="selectPlatform(this,'mac')">🍏 Mac</div>
+      <div class="platform-tab" onclick="selectPlatform(this,'linux')">🐧 Linux</div>
+    </div>
+    <a id="download-btn" href="https://apps.apple.com/app/happ-proxy-utility/id6504287215" target="_blank" class="btn-primary">
+      ⬇️ &nbsp;<span data-i18n="btn_download">Скачать Happ</span>
+    </a>
+  </div>
+
+  <!-- CONNECT -->
+  <div class="card" style="animation-delay:0.15s;">
+    <div class="card-title" data-i18n="connect_title">Подключение</div>
+    <a
+      id="connect-btn"
+      href="happ://routing/add/eyJHZW9pcFVybCI6Imh0dHBzOlwvXC9jZG4uanNkZWxpdnIubmV0XC9naFwvaHlkcmFwb25pcXVlXC9yb3Njb212cG4tZ2VvaXBAMjAyNjAzMjAwNDU2XC9yZWxlYXNlXC9nZW9pcC5kYXQiLCJSZW1vdGVETlNUeXBlIjoiRG9IIiwiRG9tZXN0aWNETlNUeXBlIjoiRG9IIiwiR2Vvc2l0ZVVybCI6Imh0dHBzOlwvXC9jZG4uanNkZWxpdnIubmV0XC9naFwvaHlkcmFwb25pcXVlXC9yb3Njb212cG4tZ2Vvc2l0ZUAyMDI2MDMxODE5MDFcL3JlbGVhc2VcL2dlb3NpdGUuZGF0IiwiRGlyZWN0U2l0ZXMiOlsiZ2Vvc2l0ZTpwcml2YXRlIiwiZ2Vvc2l0ZTpjYXRlZ29yeS1ydSIsImdlb3NpdGU6d2hpdGVsaXN0IiwiZ2Vvc2l0ZTptaWNyb3NvZnQiLCJnZW9zaXRlOmFwcGxlIiwiZ2Vvc2l0ZTpnb29nbGUtcGxheSIsImdlb3NpdGU6ZXBpY2dhbWVzIiwiZ2Vvc2l0ZTpyaW90IiwiZ2Vvc2l0ZTplc2NhcGVmcm9tdGFya292IiwiZ2Vvc2l0ZTpzdGVhbSIsImdlb3NpdGU6b3JpZ2luIiwiZ2Vvc2l0ZTp0d2l0Y2giLCJnZW9zaXRlOnBpbnRlcmVzdCIsImdlb3NpdGU6ZmFjZWl0Il0sIkJsb2NrU2l0ZXMiOlsiZ2Vvc2l0ZTp3aW4tc3B5IiwiZ2Vvc2l0ZTp0b3JyZW50IiwiZ2Vvc2l0ZTpjYXRlZ29yeS1hZHMiXSwiUHJveHlJcCI6W10sIkRvbWVzdGljRE5TRG9tYWluIjoiaHR0cHM6XC9cLzc3Ljg4LjguOFwvZG5zLXF1ZXJ5IiwiR2xvYmFsUHJveHkiOnRydWUsIkxhc3RVcGRhdGVkIjoxNzczOTgyNjQ2LCJSZW1vdGVETlNJcCI6IjguOC44LjgiLCJCbG9ja0lwIjpbXSwiUHJveHlTaXRlcyI6WyJnZW9zaXRlOmdpdGh1YiIsImdlb3NpdGU6dHdpdGNoLWFkcyIsImdlb3NpdGU6eW91dHViZSIsImdlb3NpdGU6dGVsZWdyYW0iXSwiUmVtb3RlRE5TRG9tYWluIjoiaHR0cHM6XC9cLzguOC44LjhcL2Rucy1xdWVyeSIsIk5hbWUiOiJSb3Njb21WUE4iLCJEb21lc3RpY0ROU0lwIjoiNzcuODguOC44IiwiRG5zSG9zdHMiOnsibGtucGQubmFsb2cucnUiOiIyMTMuMjQuNjQuMTgxIiwibGtmbDIubmFsb2cucnUiOiIyMTMuMjQuNjQuMTc1In0sIkRpcmVjdElwIjpbImdlb2lwOnByaXZhdGUiLCJnZW9pcDpkaXJlY3QiXSwiRmFrZURucyI6ZmFsc2UsIlVzZUNodW5rRmlsZXMiOnRydWUsIkRvbWFpblN0cmF0ZWd5IjoiSVBJZk5vbk1hdGNoIiwiUm91dGVPcmRlciI6ImJsb2NrLXByb3h5LWRpcmVjdCJ9"
+      class="btn-primary"
+      style="margin-top:0;"
+    >
+      ▶️ &nbsp;<span data-i18n="btn_connect">Подключить в Happ</span>
+    </a>
+  </div>
+
+  <!-- QR-КОД -->
+  <div class="card qr-card">
+    <div class="card-title" data-i18n="qr_title">QR-код подключения</div>
+
+    <!-- Пустое состояние: ключа нет в URL -->
+    <div class="qr-empty" id="qrEmpty">
+      <div class="qr-empty-icon">📱</div>
+      <div class="qr-empty-title" data-i18n="qr_empty_title">QR-код появится здесь</div>
+      <div class="qr-empty-desc" data-i18n="qr_empty_desc">
+        Бот отправит вам персональную ссылку на эту страницу.<br>
+        Откройте её — QR-код загрузится автоматически.
+      </div>
+      <div class="qr-empty-hint" data-i18n="qr_empty_hint">
+        💡 Для разработчиков: добавьте ключ в URL после символа #<br>
+        Пример: <code>page.html#vless%3A%2F%2F...</code>
+      </div>
+    </div>
+
+    <!-- Состояние: QR готов -->
+    <div class="qr-content" id="qrContent">
+      <div class="qr-wrapper">
+        <div class="qr-box">
+          <div id="qrcode"></div>
+        </div>
+        <div class="qr-info">
+          <div class="qr-info-title" data-i18n="qr_scan">Наведите камеру на QR-код</div>
+          <div class="qr-info-sub" data-i18n="qr_scan_sub">Подойдёт любое приложение для сканирования</div>
+          <div class="qr-key-preview" id="keyPreview" onclick="copyKey()" title="Нажмите чтобы скопировать"></div>
+          <div class="copy-toast" id="copyToast" data-i18n="copied">✓ Скопировано!</div>
+          <a id="saveQrBtn" href="#" download="prosto-vpn-qr.png" class="btn-secondary" onclick="saveQR(event)">
+            💾 &nbsp;<span data-i18n="btn_save_qr">Сохранить QR-код</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span data-i18n="footer">· Просто ВПН · зашифрованное соединение ·</span>
+  </footer>
+
+</div>
+<script>
+  // ─── ПЕРЕВОДЫ ────────────────────────────────────────────
+  const i18n = {
+    ru: {
+      brand:'Просто ВПН', badge:'Безопасное соединение', tagline:'· зашифрованный канал ·',
+      how_title:'Как подключиться',
+      step1_title:'Установите Happ', step1_desc:'Скачайте приложение на своё устройство',
+      step2_title:'Вернитесь сюда', step2_desc:'Откройте эту страницу в браузере',
+      step3_title:'Нажмите Подключить', step3_desc:'Соединение установится автоматически',
+      btn_download:'Скачать Happ', connect_title:'Подключение', btn_connect:'Подключить в Happ',
+      qr_title:'QR-код подключения',
+      qr_empty_title:'QR-код появится здесь',
+      qr_empty_desc:'Бот отправит вам персональную ссылку на эту страницу.\nОткройте её — QR-код загрузится автоматически.',
+      qr_empty_hint:'💡 Для разработчиков: добавьте ключ в URL после символа #\nПример: page.html#vless%3A%2F%2F...',
+      qr_scan:'Наведите камеру на QR-код',
+      qr_scan_sub:'Подойдёт любое приложение для сканирования',
+      btn_save_qr:'Сохранить QR-код',
+      copied:'✓ Скопировано!',
+      footer:'· Просто ВПН · зашифрованное соединение ·'
+    },
+    en: {
+      brand:'Simply VPN', badge:'Secure connection', tagline:'· encrypted channel ·',
+      how_title:'How to connect',
+      step1_title:'Install Happ', step1_desc:'Download the app on your device',
+      step2_title:'Return here', step2_desc:'Open this page in your browser',
+      step3_title:'Tap Connect', step3_desc:'The connection will be established automatically',
+      btn_download:'Download Happ', connect_title:'Connect', btn_connect:'Connect in Happ',
+      qr_title:'Connection QR Code',
+      qr_empty_title:'QR Code will appear here',
+      qr_empty_desc:'The bot will send you a personal link to this page.\nOpen it — the QR code will load automatically.',
+      qr_empty_hint:'💡 Developers: add the key to the URL after the # symbol\nExample: page.html#vless%3A%2F%2F...',
+      qr_scan:'Point your camera at the QR code',
+      qr_scan_sub:'Any QR scanner app will work',
+      btn_save_qr:'Save QR Code',
+      copied:'✓ Copied!',
+      footer:'· Simply VPN · encrypted connection ·'
+    }
+  };
+
+  let currentLang = 'ru';
+
+  function applyLang(lang) {
+    currentLang = lang;
+    const t = i18n[lang];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (t[key] !== undefined) el.textContent = t[key];
+    });
+    document.getElementById('langLabel').textContent = lang.toUpperCase();
+    document.getElementById('opt-ru').classList.toggle('active', lang === 'ru');
+    document.getElementById('opt-en').classList.toggle('active', lang === 'en');
+    document.documentElement.lang = lang;
+  }
+
+  function setLang(lang) {
+    applyLang(lang);
+    document.getElementById('langDropdown').classList.remove('open');
+  }
+
+  function toggleLangDropdown() {
+    document.getElementById('langDropdown').classList.toggle('open');
+  }
+
+  document.addEventListener('click', function(e) {
+    if (!document.getElementById('langSwitcher').contains(e.target)) {
+      document.getElementById('langDropdown').classList.remove('open');
+    }
+  });
+
+  // ─── ПЛАТФОРМЫ ──────────────────────────────────────────
+  const platformLinks = {
+    ios:     'https://apps.apple.com/app/happ-proxy-utility/id6504287215',
+    android: 'https://play.google.com/store/apps/details?id=app.happ',
+    win:     'https://github.com/hiddify/hiddify-app/releases/latest',
+    mac:     'https://apps.apple.com/app/happ-proxy-utility/id6504287215',
+    linux:   'https://github.com/hiddify/hiddify-app/releases/latest',
+  };
+
+  function selectPlatform(el, platform) {
+    document.querySelectorAll('.platform-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('download-btn').href = platformLinks[platform];
+  }
+
+  // ─── ТЕМА ───────────────────────────────────────────────
+  let dark = true;
+  function toggleTheme() {
+    dark = !dark;
+    document.getElementById('themeBtn').textContent = dark ? '🌙' : '☀️';
+    const r = document.documentElement.style;
+    if (!dark) {
+      r.setProperty('--bg','#f0f2f7'); r.setProperty('--surface','#ffffff');
+      r.setProperty('--surface2','#e8ebf2'); r.setProperty('--text','#1a1d27');
+      r.setProperty('--border','rgba(0,0,0,0.08)'); r.setProperty('--muted','#7b8090');
+    } else {
+      r.setProperty('--bg','#0a0c10'); r.setProperty('--surface','#111318');
+      r.setProperty('--surface2','#181c24'); r.setProperty('--text','#e8eaf0');
+      r.setProperty('--border','rgba(255,255,255,0.07)'); r.setProperty('--muted','#6b7280');
+    }
+  }
+
+  // ─── QR-КОД ─────────────────────────────────────────────
+  let vpnKey = '';
+
+  function initQR() {
+    // Читаем хэш из URL: page.html#<base64 или raw ключ>
+    const hash = window.location.hash.slice(1);
+    if (!hash) return; // нет ключа — показываем пустое состояние
+
+    try {
+      // Пробуем декодировать Base64 (если бот закодировал)
+      vpnKey = atob(hash);
+    } catch(e) {
+      // Если не Base64 — используем как есть (URL-декодируем)
+      vpnKey = decodeURIComponent(hash);
+    }
+
+    if (!vpnKey) return;
+
+    // Показываем QR-блок, скрываем пустое состояние
+    document.getElementById('qrEmpty').style.display = 'none';
+    document.getElementById('qrContent').classList.add('visible');
+
+    // Показываем превью ключа (обрезанно)
+    const preview = document.getElementById('keyPreview');
+    preview.textContent = vpnKey.length > 80
+      ? vpnKey.slice(0, 80) + '...'
+      : vpnKey;
+
+    // Генерируем QR
+    new QRCode(document.getElementById('qrcode'), {
+      text: vpnKey,
+      width: 200,
+      height: 200,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }
+
+  function copyKey() {
+    if (!vpnKey) return;
+    navigator.clipboard.writeText(vpnKey).then(() => {
+      const toast = document.getElementById('copyToast');
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2000);
+    }).catch(() => {
+      // Фолбэк для старых браузеров
+      const ta = document.createElement('textarea');
+      ta.value = vpnKey;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      const toast = document.getElementById('copyToast');
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2000);
+    });
+  }
+
+  function saveQR(e) {
+    e.preventDefault();
+    const canvas = document.querySelector('#qrcode canvas');
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = 'prosto-vpn-qr.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  // Запускаем после загрузки страницы
+  window.addEventListener('load', initQR);
+</script>
+</body>
+</html>
